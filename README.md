@@ -1,0 +1,4 @@
+whiteboard
+==========
+
+Collaborative, versioned whiteboard
