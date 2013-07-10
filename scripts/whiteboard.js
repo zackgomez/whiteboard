@@ -7,13 +7,65 @@ var stroke_history = [];
 
 ws.onmessage = function (evt) { handleMessage(evt.data); }
 
-function handleMessage(msg) {
-  stroke = JSON.parse(msg);
-  renderStroke(ctx, stroke);
+function handleMessage(raw_msg) {
+  var msg = JSON.parse(raw_msg);
+  if (msg.type == 'stroke') {
+    renderStroke(msg.stroke);
+  } else if (msg.type == 'history') {
+    setHistory(msg.strokes);
+  } else if (msg.type == 'reset') {
+    localReset();
+  } else {
+    console.log('unknown message', raw_msg);
+  }
+}
+
+function clearWhiteboard(canvas, ctx) {
+  var rect = getBoundingRect(canvas);
+  ctx.clearRect(0, 0, rect.right, rect.bottom);
+}
+
+function localReset() {
+  clearWhiteboard(canvas, ctx);
+  stroke_history = [];
+}
+
+function reset() {
+  localReset();
+  ws.send(JSON.stringify({
+    type: 'reset',
+  }));
+}
+
+function setHistory(strokes) {
+  clearWhiteboard(canvas, ctx);
+  stroke_history = strokes;
+  for (var i = 0; i < stroke_history.length; i++) {
+    renderStroke(stroke_history[i]);
+  }
+}
+
+function getBoundingRect(canvas) {
+  return canvas.getBoundingClientRect();
+}
+
+function renderStroke(stroke) {
+  if (stroke.length < 2) {
+    return;
+  }
+  var prev = stroke[0];
+  for (var i = 1; i < stroke.length; i++) {
+    var cur = stroke[i];
+    ctx.beginPath();
+    ctx.moveTo(prev.x, prev.y);
+    ctx.lineTo(cur.x, cur.y);
+    ctx.stroke();
+    prev = cur;
+  }
 }
 
 function getMousePos(canvas, evt) {
-  var rect = canvas.getBoundingClientRect();
+  var rect = getBoundingRect(canvas);
   return {
     x: evt.clientX - rect.left,
     y: evt.clientY - rect.top
@@ -28,26 +80,15 @@ function startStroke(canvas_ctx, pt) {
 function endStroke(canvas_ctx) {
   if (current_stroke.length > 1) {
     stroke_history.push(current_stroke);
-    ws.send(JSON.stringify(current_stroke));
+    var msg = {
+      type: 'stroke',
+      stroke: current_stroke
+    };
+    ws.send(JSON.stringify(msg));
   }
 
   drawing = false;
   current_stroke = [];
-}
-
-function renderStroke(canvas_ctx, stroke) {
-  if (stroke.length < 2) {
-    return;
-  }
-  var prev = stroke[0];
-  for (var i = 1; i < stroke.length; i++) {
-    var cur = stroke[i];
-    canvas_ctx.beginPath();
-    canvas_ctx.moveTo(prev.x, prev.y);
-    canvas_ctx.lineTo(cur.x, cur.y);
-    canvas_ctx.stroke();
-    prev = cur;
-  }
 }
 
 canvas.addEventListener('resize', function (evt) {
@@ -83,4 +124,10 @@ canvas.addEventListener('mouseup', function (evt) {
 
 canvas.addEventListener('mouseout', function (evt) {
   endStroke(ctx);
+});
+
+canvas.addEventListener('keydown', function (evt) {
+  if (evt.keyCode === 67) {
+    reset();
+  }
 });
