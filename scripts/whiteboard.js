@@ -1,14 +1,22 @@
 function createSocket() {
   var handleMessage = function (raw_msg) {
     var msg = JSON.parse(raw_msg);
-    if (msg.type == 'stroke') {
+    if (msg.type == 'stroke_progress') {
       renderLine(msg.prev, msg.pos);
     } else if (msg.type == 'history') {
-      setHistory(msg.strokes);
       client_id = msg.client_id;
-      replayStrokes(msg.strokes);
-    } else if (msg.type == 'stroke_finished') {
+      setHistory(msg.commits);
+      head = msg.head;
+      renderCommit(head);
+    } else if (msg.type == 'stroke_commit') {
       stroke_history.push(msg.stroke);
+    } else if (msg.type == 'stroke_begin') {
+      if (current_stroke && msg.stroke_id === current_stroke.id) {
+        current_stroke.parent_id = msg.parent_id;
+      }
+      if (msg.stroke_id in commits) {
+        commits[msg.stroke_id].parent_id = msg.parent_id;
+      }
     } else if (msg.type == 'reset') {
       localReset();
     } else {
@@ -25,9 +33,10 @@ function createSocket() {
 var canvas = document.getElementById('whiteboard');
 var ctx = canvas.getContext('2d');
 var drawing = false;
-var current_stroke = { points : [], id : null };
+var current_stroke = null;
 var ws = createSocket();
-var stroke_history = [];
+var commits = {};
+var head = null;
 var client_id = null;
 var local_stroke_count = 0;
 
@@ -38,7 +47,7 @@ function clearWhiteboard(canvas, ctx) {
 
 function localReset() {
   clearWhiteboard(canvas, ctx);
-  stroke_history = [];
+  commits = {};
 }
 
 function reset() {
@@ -48,12 +57,59 @@ function reset() {
   }));
 }
 
-function setHistory(strokes) {
+function setHistory(new_history) {
   clearWhiteboard(canvas, ctx);
-  stroke_history = strokes;
-  for (var i = 0; i < stroke_history.length; i++) {
-    renderPoints(stroke_history[i].points);
+  commits = new_history;
+}
+
+function renderCommit(commit_id) {
+  if (commit_id === null) {
+    return;
   }
+  console.log(commit_id);
+  var commit = commits[commit_id];
+  if (!commit) {
+    throw new Error('commit id ' + commit_id + ' not found');
+  }
+
+  renderCommit(commit.parent_id);
+  renderPoints(commit.data.points);
+}
+
+function startStroke(pt) {
+  drawing = true;
+  current_stroke = {
+    id: client_id + '.' + local_stroke_count++,
+    parent_id: head,
+    data: {
+      points: [pt]
+    }
+  }
+  head = current_stroke.id;
+  
+  var msg = {
+    type: 'stroke_new',
+    id: current_stroke.id,
+    parent_id: current_stroke.parent_id
+  };
+  ws.send(JSON.stringify(msg));
+}
+
+function endStroke(canvas_ctx) {
+  if (!drawing) {
+    return;
+  }
+    
+  var msg = {
+    type: 'stroke_commit',
+    stroke: current_stroke
+  };
+  ws.send(JSON.stringify(msg));
+
+  commits[current_stroke.id] = current_stroke;
+
+  drawing = false;
+  current_stroke = null;
 }
 
 function getBoundingRect(canvas) {
@@ -89,26 +145,6 @@ function getMousePos(canvas, evt) {
   };
 }
 
-function startStroke(canvas_ctx, pt) {
-  drawing = true;
-  current_stroke.id = client_id + '.' + local_stroke_count++;
-  current_stroke.points.push(pt);
-}
-
-function endStroke(canvas_ctx) {
-  if (current_stroke.points.length > 1) {
-    stroke_history.push(current_stroke);
-    var msg = {
-      type: 'stroke_finished',
-      stroke: current_stroke 
-    };
-    ws.send(JSON.stringify(msg));
-  }
-
-  drawing = false;
-  current_stroke.points = [];
-}
-
 function attachControls() {
   var reset_button = document.getElementById('reset_button');
   reset_button.onmousedown = function (evt) {
@@ -132,19 +168,18 @@ canvas.addEventListener('resize', function (evt) {
 });
 
 canvas.addEventListener('mousemove', function (evt) {
-  if (!drawing) {
+  if (!drawing || !current_stroke) {
+    drawing = false;
+    current_stroke = null;
     return;
   }
-  if (!current_stroke.points.length) {
-    return;
-  }
-  var prev = current_stroke.points[current_stroke.points.length - 1];
+  var prev = current_stroke.data.points[current_stroke.data.points.length - 1];
   var pos = getMousePos(canvas, evt);
-  current_stroke.points.push(pos);
+  current_stroke.data.points.push(pos);
 
   renderLine(prev, pos);
   var msg = {
-    type: 'stroke',
+    type: 'stroke_progress',
     prev: prev,
     pos: pos
   };
@@ -153,7 +188,7 @@ canvas.addEventListener('mousemove', function (evt) {
 
 canvas.addEventListener('mousedown', function (evt) {
   var pt = getMousePos(canvas, evt);
-  startStroke(ctx, pt)
+  startStroke(pt)
 });
 
 canvas.addEventListener('mouseup', function (evt) {
