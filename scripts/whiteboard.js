@@ -97,6 +97,23 @@ function endStroke(canvas_ctx) {
   current_stroke = [];
 }
 
+function attachControls() {
+  var reset_button = document.getElementById('reset_button');
+  reset_button.onmousedown = function (evt) {
+    reset();
+  }
+
+  // hotkeys
+  document.onkeydown = function (evt) {
+    if (evt.keyCode === 67) {
+      reset();
+    }
+  };
+  if (document.layers) {
+    document.captureEvents(Event.KEYPRESS);
+  }
+}
+
 canvas.addEventListener('resize', function (evt) {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -129,8 +146,4 @@ canvas.addEventListener('mouseout', function (evt) {
   endStroke(ctx);
 });
 
-canvas.addEventListener('keydown', function (evt) {
-  if (evt.keyCode === 67) {
-    reset();
-  }
-});
+attachControls();

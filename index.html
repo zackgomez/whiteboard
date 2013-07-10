@@ -14,10 +14,28 @@
       border: 2px solid #000000;
       -webkit-tap-highlight-color: rgba(255, 255, 255, 0); /* mobile webkit */
     }   
+    #controls {
+      position: absolute;
+      top: 10;
+      left: 10;
+    }
+    #whiteboard_wrapper {
+      position: absolute;
+      top: 10;
+      left: 100;
+    }
   </style>
-</head>
-<body>
-  <canvas id="whiteboard" width="800px" height="600px" tabindex="1" />
+
+  </head>
+  <body>
+  <div id="controls">
+    <ul>
+      <li><a id="reset_button" href='#'>Reset</a></li>
+    </ul>
+  </div>
+  <div id="whiteboard_wrapper">
+    <canvas id="whiteboard" width="800px" height="600px" tabindex="1" />
+  </div>
   <script src="scripts/whiteboard.js"></script>
 </body>
 </html>

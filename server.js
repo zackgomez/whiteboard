@@ -1,7 +1,5 @@
 var express = require('express');
-var redis = require('redis');
 var WebSocket = require('ws');
-var db = redis.createClient();
 var app = express();
 
 var stroke_history = [];
