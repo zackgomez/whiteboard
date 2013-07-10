@@ -5,8 +5,10 @@ function createSocket() {
       renderLine(msg.prev, msg.pos);
     } else if (msg.type == 'history') {
       setHistory(msg.strokes);
+      client_id = msg.client_id;
+      replayStrokes(msg.strokes);
     } else if (msg.type == 'stroke_finished') {
-      stroke_history.push[msg.stroke];
+      stroke_history.push(msg.stroke);
     } else if (msg.type == 'reset') {
       localReset();
     } else {
@@ -19,32 +21,15 @@ function createSocket() {
   ws.onmessage = function (evt) { handleMessage(evt.data); }
   return ws;
 }
+
 var canvas = document.getElementById('whiteboard');
 var ctx = canvas.getContext('2d');
 var drawing = false;
 var current_stroke = { points : [], id : null };
-var ws = new WebSocket('ws://localhost:8081');
+var ws = createSocket();
 var stroke_history = [];
 var client_id = null;
 var local_stroke_count = 0;
-
-ws.onmessage = function (evt) { handleMessage(evt.data); }
-
-function handleMessage(raw_msg) {
-  var msg = JSON.parse(raw_msg);
-  if (msg.type == 'stroke') {
-    renderLine(msg.prev, msg.pos);
-  } else if (msg.type == 'history') {
-    client_id = msg.client_id;
-    setHistory(msg.strokes);
-  } else if (msg.type == 'stroke_finished') {
-    stroke_history.push(msg.stroke);
-  } else if (msg.type == 'reset') {
-    localReset();
-  } else {
-    console.log('unknown message', raw_msg);
-  }
-}
 
 function clearWhiteboard(canvas, ctx) {
   var rect = getBoundingRect(canvas);
