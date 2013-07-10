@@ -11,7 +11,7 @@ function createSocket() {
       client_id = msg.client_id;
       setHistory(msg.commits);
       head = msg.head;
-      renderCommit(head);
+      renderCommitAndAddToGallery(head);
     } else if (msg.type == 'stroke_commit') {
       var stroke = msg.stroke;
       if (!stroke || !commits[stroke.parent_id]) {
@@ -30,7 +30,7 @@ function createSocket() {
       }
 
     } else if (msg.type == 'reset') {
-      localReset();
+      setHistory({});
     } else {
       console.log('unknown message', raw_msg);
     }
@@ -50,13 +50,8 @@ var client_id = null;
 var local_stroke_count = 0;
 var line_width = 3;
 
-function localReset() {
-  Canvas.clear();
-  commits = {};
-}
-
 function reset() {
-  localReset();
+  setHistory({});
   ws.send(JSON.stringify({
     type: 'reset',
   }));
@@ -64,10 +59,28 @@ function reset() {
 
 function setHistory(new_history) {
   Canvas.clear();
+  clearGallery();
   commits = new_history;
 }
 
 function renderCommit(commit_id) {
+  traverseCommits(commit_id, function(commit) {
+    if (commit.data.points) {
+      renderPoints(commit.data.points, commit.data.width);
+    }
+  });
+}
+
+function renderCommitAndAddToGallery(commit_id) {
+  traverseCommits(commit_id, function(commit) {
+    if (commit.data.points) {
+      renderPoints(commit.data.points, commit.data.width);
+      addCommitToGallery(commit);
+    }
+  });
+}
+
+function traverseCommits(commit_id, cb) {
   if (commit_id === null) {
     return;
   }
@@ -76,10 +89,8 @@ function renderCommit(commit_id) {
     throw new Error('commit id ' + commit_id + ' not found');
   }
 
-  renderCommit(commit.parent_id);
-  if (commit.data.points) {
-    renderPoints(commit.data.points, commit.data.width);
-  }
+  traverseCommits(commit.parent_id, cb);
+  cb(commit);
 }
 
 function startStroke(pt) {
@@ -110,6 +121,8 @@ function endStroke() {
     stroke: current_stroke
   };
   ws.send(JSON.stringify(msg));
+
+  addCommitToGallery(current_stroke);
 
   commits[current_stroke.id] = current_stroke;
 

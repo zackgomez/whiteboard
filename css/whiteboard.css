@@ -41,3 +41,20 @@ body {
   bottom: 10;
   left: 10;
 }
+
+#history_gallery_container {
+  position: absolute;
+  top: 650;
+  left: 60;
+}
+
+#history_gallery li {
+  height: 60px;
+  width: 60px;
+  background-color: #eee;
+  display: inline-block;
+  text-align: center;
+  list-style-type: none;
+  margin-right: 20px;
+  margin-top: 20pxc
+}
