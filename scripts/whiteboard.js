@@ -10,9 +10,11 @@ ws.onmessage = function (evt) { handleMessage(evt.data); }
 function handleMessage(raw_msg) {
   var msg = JSON.parse(raw_msg);
   if (msg.type == 'stroke') {
-    renderStroke(msg.stroke);
+    renderLine(msg.prev, msg.pos);
   } else if (msg.type == 'history') {
     setHistory(msg.strokes);
+  } else if (msg.type == 'stroke_finished') {
+    stroke_history.push[msg.stroke];
   } else if (msg.type == 'reset') {
     localReset();
   } else {
@@ -87,8 +89,8 @@ function endStroke(canvas_ctx) {
   if (current_stroke.length > 1) {
     stroke_history.push(current_stroke);
     var msg = {
-      type: 'stroke',
-      stroke: current_stroke
+      type: 'stroke_finished',
+      stroke: current_stroke 
     };
     ws.send(JSON.stringify(msg));
   }
@@ -131,6 +133,12 @@ canvas.addEventListener('mousemove', function (evt) {
   current_stroke.push(pos);
 
   renderLine(prev, pos);
+  var msg = {
+    type: 'stroke',
+    prev: prev,
+    pos: pos
+  };
+  ws.send(JSON.stringify(msg));
 });
 
 canvas.addEventListener('mousedown', function (evt) {

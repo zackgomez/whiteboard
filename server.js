@@ -25,8 +25,10 @@ wss.on('connection', function (ws) {
   ws.on('message', function (raw_msg) {
     var msg = JSON.parse(raw_msg);
     if (msg.type == 'stroke') {
-      stroke_history.push(msg.stroke);
       console.log('broadcasting stroke');
+      broadcastMessage(wss, raw_msg, ws);
+    } else if (msg.type == 'stroke_finished') {
+      stroke_history.push(msg.stroke);
       broadcastMessage(wss, raw_msg, ws);
     } else if (msg.type == 'reset') {
       stroke_history = [];
