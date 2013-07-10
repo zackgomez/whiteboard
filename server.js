@@ -4,6 +4,14 @@ var WebSocket = require('ws');
 var db = redis.createClient();
 var app = express();
 
+var wss = new WebSocket.Server({port: 8081});
+wss.on('connection', function (ws) {
+  console.log('got ws conn')
+  ws.on('message', function (message) {
+    console.log('got ws message', message);
+  });
+});
+
 app.use('/', express.static(__dirname));
 app.use(express.bodyParser());
 
