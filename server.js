@@ -15,11 +15,12 @@ function broadcastMessage(wss, raw_msg, exclude_client) {
 
 var wss = new WebSocket.Server({port: 8081});
 wss.on('connection', function (ws) {
-  console.log('got new connection');
+  console.log('got new connection, id = ' + wss.clients.length);
 
   ws.send(JSON.stringify({
     type: 'history',
-    strokes: stroke_history
+    strokes: stroke_history,
+    client_id: wss.clients.length
   }));
 
   ws.on('message', function (raw_msg) {
