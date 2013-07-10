@@ -2,6 +2,15 @@ var canvas = document.getElementById('whiteboard');
 var ctx = canvas.getContext('2d');
 var drawing = false;
 var current_stroke = [];
+var ws = new WebSocket('ws://localhost:8081');
+var stroke_history = [];
+
+ws.onmessage = function (evt) { handleMessage(evt.data); }
+
+function handleMessage(msg) {
+  stroke = JSON.parse(msg);
+  renderStroke(ctx, stroke);
+}
 
 function getMousePos(canvas, evt) {
   var rect = canvas.getBoundingClientRect();
@@ -17,8 +26,28 @@ function startStroke(canvas_ctx, pt) {
 }
 
 function endStroke(canvas_ctx) {
+  if (current_stroke.length > 1) {
+    stroke_history.push(current_stroke);
+    ws.send(JSON.stringify(current_stroke));
+  }
+
   drawing = false;
   current_stroke = [];
+}
+
+function renderStroke(canvas_ctx, stroke) {
+  if (stroke.length < 2) {
+    return;
+  }
+  var prev = stroke[0];
+  for (var i = 1; i < stroke.length; i++) {
+    var cur = stroke[i];
+    canvas_ctx.beginPath();
+    canvas_ctx.moveTo(prev.x, prev.y);
+    canvas_ctx.lineTo(cur.x, cur.y);
+    canvas_ctx.stroke();
+    prev = cur;
+  }
 }
 
 canvas.addEventListener('resize', function (evt) {

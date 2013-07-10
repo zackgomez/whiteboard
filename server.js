@@ -8,7 +8,14 @@ var wss = new WebSocket.Server({port: 8081});
 wss.on('connection', function (ws) {
   console.log('got ws conn')
   ws.on('message', function (message) {
-    console.log('got ws message', message);
+    console.log('broadcasting stroke');
+    for (var i = 0; i < wss.clients.length; i++) {
+      var client = wss.clients[i];
+      if (client === ws) {
+        continue;
+      }
+      client.send(message);
+    }
   });
 });
 
