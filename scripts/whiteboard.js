@@ -56,12 +56,18 @@ function renderStroke(stroke) {
   var prev = stroke[0];
   for (var i = 1; i < stroke.length; i++) {
     var cur = stroke[i];
-    ctx.beginPath();
-    ctx.moveTo(prev.x, prev.y);
-    ctx.lineTo(cur.x, cur.y);
-    ctx.stroke();
+    renderLine(prev, cur);
     prev = cur;
   }
+}
+
+function renderLine(start, end) {
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(start.x, start.y);
+  ctx.lineTo(end.x, end.y);
+  ctx.stroke();
 }
 
 function getMousePos(canvas, evt) {
@@ -107,10 +113,7 @@ canvas.addEventListener('mousemove', function (evt) {
   var pos = getMousePos(canvas, evt);
   current_stroke.push(pos);
 
-  ctx.beginPath();
-  ctx.moveTo(prev.x, prev.y);
-  ctx.lineTo(pos.x, pos.y);
-  ctx.stroke();
+  renderLine(prev, pos);
 });
 
 canvas.addEventListener('mousedown', function (evt) {
