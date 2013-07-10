@@ -1,35 +1,7 @@
 <html>
 <head>
   <title>Collaborative Whiteboard</title>
-  <!-- Some css shit to add a border and disallow selection
-       (annoying highlight) of the canvas element -->
-  <style type="text/css">
-    canvas {
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      -khtml-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-      border: 2px solid #000000;
-      -webkit-tap-highlight-color: rgba(255, 255, 255, 0); /* mobile webkit */
-    }   
-    #controls {
-      position: absolute;
-      top: 10;
-      left: 10;
-    }
-    #whiteboard_wrapper {
-      position: absolute;
-      top: 10;
-      left: 100;
-    }
-    #footer {
-      position: absolute;
-      bottom: 10;
-      left: 10;
-    }
-  </style>
+  <link rel="stylesheet" href="css/whiteboard.css" type="text/css" />
 
   </head>
   <body>
