@@ -66,14 +66,15 @@ function renderCommit(commit_id) {
   if (commit_id === null) {
     return;
   }
-  console.log(commit_id);
   var commit = commits[commit_id];
   if (!commit) {
     throw new Error('commit id ' + commit_id + ' not found');
   }
 
   renderCommit(commit.parent_id);
-  renderPoints(commit.data.points);
+  if (commit.data.points) {
+    renderPoints(commit.data.points);
+  }
 }
 
 function startStroke(pt) {

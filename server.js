@@ -18,8 +18,6 @@ function broadcastMessage(wss, raw_msg, exclude_client) {
 var wss = new WebSocket.Server({port: 8081});
 wss.on('connection', function (ws) {
   var new_id = last_client_id++;
-  console.log('commits', commits);
-  console.log('got new connection, id = ' + new_id);
 
   ws.send(JSON.stringify({
     type: 'history',
@@ -33,7 +31,6 @@ wss.on('connection', function (ws) {
     if (msg.type == 'stroke_progress') {
       broadcastMessage(wss, raw_msg, ws);
     } else if (msg.type == 'stroke_new') {
-      console.log('new stroke msg', msg);
       var updated_msg = {
         type: 'stroke_begin',
         id: msg.id,
@@ -48,7 +45,6 @@ wss.on('connection', function (ws) {
         parent_id: updated_msg.parent_id,
         data: {}
       };
-      console.log('after adding', commits);
       head_commit_id = msg.id;
 
       broadcastMessage(wss, JSON.stringify(updated_msg));
@@ -70,6 +66,7 @@ wss.on('connection', function (ws) {
       broadcastMessage(wss, raw_msg, ws);
     } else if (msg.type == 'reset') {
       commits = {}
+      head_commit_id = null;
       broadcastMessage(wss, raw_msg, ws);
     } else {
       console.log('unknown message', raw_msg);
