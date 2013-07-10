@@ -1,7 +1,11 @@
 var express = require('express');
 var redis = require('redis');
+var WebSocket = require('ws');
 var db = redis.createClient();
 var app = express();
+
+app.use('/', express.static(__dirname));
+app.use(express.bodyParser());
 
 app.use(function(req, res, next){
   var ua = req.headers['user-agent'];
@@ -18,7 +22,7 @@ app.use(function(req, res, next){
   });
 });
 
-app.get('/', function(req, res){
+app.get('/online', function(req, res){
     res.send(req.online.length + ' users online');
 });
 
