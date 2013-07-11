@@ -6,7 +6,7 @@ function createSocket() {
       if (!stroke) {
         return;
       }
-      Canvas.renderLine(msg.prev, msg.pos, stroke.data.width);
+      Canvas.renderLine(msg.prev, msg.pos, stroke.data.width, stroke.data.color);
     } else if (msg.type == 'history') {
       client_id = msg.client_id;
       setHistory(msg.commits);
@@ -50,6 +50,7 @@ var head = null;
 var client_id = null;
 var local_stroke_count = 0;
 var line_width = 3;
+var line_color = '#000000';
 
 function reset() {
   setHistory({});
@@ -67,7 +68,7 @@ function setHistory(new_history) {
 function renderCommit(commit_id) {
   traverseCommits(commit_id, function(commit) {
     if (commit.data.points) {
-      renderPoints(commit.data.points, commit.data.width);
+      renderPoints(commit.data.points, commit.data.width, commit.data.color);
     }
   });
 }
@@ -75,7 +76,7 @@ function renderCommit(commit_id) {
 function renderCommitAndAddToGallery(commit_id) {
   traverseCommits(commit_id, function(commit) {
     if (commit.data.points) {
-      renderPoints(commit.data.points, commit.data.width);
+      renderPoints(commit.data.points, commit.data.width, commit.data.color);
       addCommitToGallery(commit);
     }
   });
@@ -100,6 +101,7 @@ function startStroke(pt) {
     parent_id: head,
     data: {
       width: line_width,
+      color: line_color,
       points: [pt]
     }
   }
@@ -138,7 +140,7 @@ function strokeProgress(pt) {
   var prev = current_stroke.data.points[current_stroke.data.points.length - 1];
   current_stroke.data.points.push(pt);
 
-  Canvas.renderLine(prev, pt, current_stroke.data.width);
+  Canvas.renderLine(prev, pt, current_stroke.data.width, current_stroke.data.color);
   var msg = {
     type: 'stroke_progress',
     prev: prev,
@@ -152,35 +154,29 @@ function getBoundingRect(canvas) {
   return canvas.getBoundingClientRect();
 }
 
-function renderPoints(points, width) {
+function renderPoints(points, width, color) {
   if (points.length < 2) {
     return;
   }
   var prev = points[0];
   for (var i = 1; i < points.length; i++) {
     var cur = points[i];
-    Canvas.renderLine(prev, cur, width);
+    Canvas.renderLine(prev, cur, width, color);
     prev = cur;
   }
 }
 
 function attachControls() {
-  var reset_button = document.getElementById('reset_button');
-  reset_button.onmousedown = function (evt) {
-    reset();
-  }
-
-  var small_width_button = document.getElementById('small_width_button');
-  var medium_width_button = document.getElementById('medium_width_button');
-  var large_width_button = document.getElementById('large_width_button');
-  small_width_button.onmousedown = function (evt) {
-    line_width = 3;
-  }
-  medium_width_button.onmousedown = function (evt) {
-    line_width = 7;
-  }
-  large_width_button.onmousedown = function (evt) {
-    line_width = 11;
+  var controls = document.getElementById('controls');
+  controls.onmousedown = function (evt) {
+    var target = evt.target;
+    if (target.getAttribute('data-reset')) {
+      reset();
+    } else if (target.getAttribute('data-width')) {
+      line_width = target.getAttribute('data-width');
+    } else if (target.getAttribute('data-color')) {
+      line_color = target.getAttribute('data-color');
+    }
   }
 
   // hotkeys

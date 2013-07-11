@@ -50,8 +50,9 @@ var Canvas = function () {
     ctx.clearRect(0, 0, rect.right, rect.bottom);
   };
 
-  exports.renderLine = function (start, end, width) {
+  exports.renderLine = function (start, end, width, color) {
     ctx.lineWidth = width;
+    ctx.strokeStyle = color;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(start.x, start.y);
