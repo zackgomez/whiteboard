@@ -1,10 +1,10 @@
 var express = require('express');
 var WebSocket = require('ws');
+var Repository = require('./scripts/repository');
 var app = express();
 
-var commits = {};
-var head_commit_id = null;
 var last_client_id = 10;
+var repositories = {};
 
 function broadcastMessage(wss, raw_msg, exclude_client) {
   for (var i = 0; i < wss.clients.length; i++) {
@@ -17,30 +17,36 @@ function broadcastMessage(wss, raw_msg, exclude_client) {
 
 var wss = new WebSocket.Server({port: 8081});
 wss.on('connection', function (ws) {
-  var new_id = last_client_id++;
-
-  ws.send(JSON.stringify({
-    type: 'history',
-    commits: commits,
-    client_id: new_id,
-    head: head_commit_id
-  }));
-
+  var repo = null;
   ws.on('message', function (raw_msg) {
     var msg = JSON.parse(raw_msg);
-    if (msg.type == 'stroke_progress') {
+    if (msg.type == 'connect') {
+      console.log(repositories);
+
+      var new_id = last_client_id++;
+      var repo_id = msg.repo_id;
+      if (repo_id in repositories) {
+        repo = repositories[repo_id];
+      } else {
+        repo_id = Math.random().toString(16).substring(2);
+        repo = new Repository();
+        repositories[repo_id] = repo;
+      }
+      ws.send(JSON.stringify({
+        type: 'history',
+        repo_id: repo_id,
+        commits: repo.getCommits(),
+        client_id: new_id,
+        head: repo.getHead()
+      }));
+    } else if (msg.type == 'stroke_progress') {
       broadcastMessage(wss, raw_msg, ws);
     } else if (msg.type == 'stroke_new') {
       var stroke = msg.stroke;
       if (!stroke) {
         return;
       }
-      if (stroke.parent_id !== head_commit_id) {
-        stroke.parent_id = head_commit_id;
-      }
-
-      commits[stroke.id] = stroke;
-      head_commit_id = stroke.id;
+      stroke = repo.appendCommit(stroke);
 
       var updated_msg = {
         type: 'stroke_new',
@@ -52,20 +58,12 @@ wss.on('connection', function (ws) {
       if (!stroke) {
         return;
       }
-      var id = stroke.id;
-      var commit = commits[id];
-      if (!commit) {
-        return;
-      }
       // Update commit
-      var parent_id = commit.parent_id;
-      commits[id] = msg.stroke;
-      commits[id].parent_id = parent_id;
+      repo.updateCommitData(stroke.id, stroke.data);
 
       broadcastMessage(wss, raw_msg, ws);
     } else if (msg.type == 'reset') {
-      commits = {}
-      head_commit_id = null;
+      repo.reset();
       broadcastMessage(wss, raw_msg, ws);
     } else {
       console.log('unknown message', raw_msg);

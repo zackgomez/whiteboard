@@ -9,9 +9,11 @@ function createSocket() {
       Canvas.renderLine(msg.prev, msg.pos, stroke.data.width, stroke.data.color);
     } else if (msg.type == 'history') {
       client_id = msg.client_id;
+      repo_id = msg.repo_id;
       setHistory(msg.commits);
       head = msg.head;
       renderCommitAndAddToGallery(head);
+      window.location.hash = repo_id;
     } else if (msg.type == 'stroke_commit') {
       var stroke = msg.stroke;
       if (!stroke || !commits[stroke.parent_id]) {
@@ -38,9 +40,14 @@ function createSocket() {
     }
   }
 
+  var repo_id = window.location.hash ? window.location.hash.substring(1) : null;
+  console.log(repo_id);
   var wsurl = 'ws://' + window.location.hostname + ':8081';
   var ws = new WebSocket(wsurl);
-  ws.onmessage = function (evt) { handleMessage(evt.data); }
+  ws.onopen = function (evt) {
+    ws.send(JSON.stringify({type: 'connect', repo_id: repo_id}));
+  };
+  ws.onmessage = function (evt) { handleMessage(evt.data); };
   return ws;
 }
 
@@ -48,6 +55,8 @@ var current_stroke = null;
 var ws = createSocket();
 var commits = {};
 var head = null;
+
+var repo_id = null;
 var client_id = null;
 var local_stroke_count = 0;
 var line_width = 3;
