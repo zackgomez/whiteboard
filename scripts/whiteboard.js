@@ -14,7 +14,7 @@ function createSocket() {
       renderCommit(head);
     } else if (msg.type == 'stroke_commit') {
       var stroke = msg.stroke;
-      if (!stroke) {
+      if (!stroke || !commits[stroke.parent_id]) {
         return;
       }
       commits[stroke.id] = stroke;
@@ -28,6 +28,7 @@ function createSocket() {
       } else {
         commits[stroke.id] = stroke;
       }
+
     } else if (msg.type == 'reset') {
       localReset();
     } else {

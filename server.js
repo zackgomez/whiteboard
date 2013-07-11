@@ -35,7 +35,7 @@ wss.on('connection', function (ws) {
       if (!stroke) {
         return;
       }
-      if (head_commit_id && stroke.parent_id !== head_commit_id) {
+      if (stroke.parent_id !== head_commit_id) {
         stroke.parent_id = head_commit_id;
       }
 
