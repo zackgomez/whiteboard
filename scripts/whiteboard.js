@@ -126,6 +126,7 @@ function endStroke() {
   ws.send(JSON.stringify(msg));
 
   addCommitToGallery(current_stroke);
+  gallery.scrollLeft = gallery.scrollWidth;
 
   commits[current_stroke.id] = current_stroke;
 

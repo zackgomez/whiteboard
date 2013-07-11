@@ -2,13 +2,13 @@ var gallery = document.getElementById("history_gallery");
 var curr_selected = null;
 
 function addCommitToGallery(commit) {
-  var new_li = document.createElement("li");
-  new_li.innerHTML = commit.id;
-  new_li.setAttribute("id", commit.id);
+  var new_div = document.createElement("div");
+  new_div.innerHTML = commit.id;
+  new_div.setAttribute("id", commit.id);
 
-  new_li.addEventListener("click", clickListener);
+  new_div.addEventListener("click", clickListener);
 
-  gallery.appendChild(new_li);
+  gallery.appendChild(new_div);
 }
 
 function clickListener() {
