@@ -18,6 +18,7 @@ function createSocket() {
         return;
       }
       commits[stroke.id] = stroke;
+      gallery.scrollLeft = gallery.scrollWidth;
       addCommitToGallery(stroke);
     } else if (msg.type == 'stroke_new') {
       var stroke = msg.stroke;
