@@ -31,22 +31,21 @@ wss.on('connection', function (ws) {
     if (msg.type == 'stroke_progress') {
       broadcastMessage(wss, raw_msg, ws);
     } else if (msg.type == 'stroke_new') {
-      var updated_msg = {
-        type: 'stroke_begin',
-        id: msg.id,
-        parent_id: msg.parent_id
-      };
-      if (head_commit_id && msg.parent_id !== head_commit_id) {
-        updated_msg.parent_id = head_commit_id;
+      var stroke = msg.stroke;
+      if (!stroke) {
+        return;
+      }
+      if (head_commit_id && stroke.parent_id !== head_commit_id) {
+        stroke.parent_id = head_commit_id;
       }
 
-      commits[msg.id] = {
-        id: updated_msg.id,
-        parent_id: updated_msg.parent_id,
-        data: {}
-      };
-      head_commit_id = msg.id;
+      commits[stroke.id] = stroke;
+      head_commit_id = stroke.id;
 
+      var updated_msg = {
+        type: 'stroke_new',
+        stroke: stroke
+      };
       broadcastMessage(wss, JSON.stringify(updated_msg));
     } else if (msg.type == 'stroke_commit') {
       var stroke = msg.stroke;

@@ -2,20 +2,31 @@ function createSocket() {
   var handleMessage = function (raw_msg) {
     var msg = JSON.parse(raw_msg);
     if (msg.type == 'stroke_progress') {
-      renderLine(msg.prev, msg.pos);
+      var stroke = commits[msg.id];
+      if (!stroke) {
+        return;
+      }
+      Canvas.renderLine(msg.prev, msg.pos, stroke.data.width);
     } else if (msg.type == 'history') {
       client_id = msg.client_id;
       setHistory(msg.commits);
       head = msg.head;
       renderCommit(head);
     } else if (msg.type == 'stroke_commit') {
-      stroke_history.push(msg.stroke);
-    } else if (msg.type == 'stroke_begin') {
-      if (current_stroke && msg.stroke_id === current_stroke.id) {
-        current_stroke.parent_id = msg.parent_id;
+      var stroke = msg.stroke;
+      if (!stroke) {
+        return;
       }
-      if (msg.stroke_id in commits) {
-        commits[msg.stroke_id].parent_id = msg.parent_id;
+      commits[stroke.id] = stroke;
+    } else if (msg.type == 'stroke_new') {
+      var stroke = msg.stroke;
+      if (current_stroke && stroke.id === current_stroke.id) {
+        current_stroke.parent_id = stroke.parent_id;
+      }
+      if (stroke.id in commits) {
+        commits[stroke.id].parent_id = stroke.parent_id;
+      } else {
+        commits[stroke.id] = stroke;
       }
     } else if (msg.type == 'reset') {
       localReset();
@@ -30,23 +41,16 @@ function createSocket() {
   return ws;
 }
 
-var canvas = document.getElementById('whiteboard');
-var ctx = canvas.getContext('2d');
-var drawing = false;
 var current_stroke = null;
 var ws = createSocket();
 var commits = {};
 var head = null;
 var client_id = null;
 var local_stroke_count = 0;
-
-function clearWhiteboard(canvas, ctx) {
-  var rect = getBoundingRect(canvas);
-  ctx.clearRect(0, 0, rect.right, rect.bottom);
-}
+var line_width = 3;
 
 function localReset() {
-  clearWhiteboard(canvas, ctx);
+  Canvas.clear();
   commits = {};
 }
 
@@ -58,7 +62,7 @@ function reset() {
 }
 
 function setHistory(new_history) {
-  clearWhiteboard(canvas, ctx);
+  Canvas.clear();
   commits = new_history;
 }
 
@@ -73,16 +77,16 @@ function renderCommit(commit_id) {
 
   renderCommit(commit.parent_id);
   if (commit.data.points) {
-    renderPoints(commit.data.points);
+    renderPoints(commit.data.points, commit.data.width);
   }
 }
 
 function startStroke(pt) {
-  drawing = true;
   current_stroke = {
     id: client_id + '.' + local_stroke_count++,
     parent_id: head,
     data: {
+      width: line_width,
       points: [pt]
     }
   }
@@ -90,14 +94,13 @@ function startStroke(pt) {
   
   var msg = {
     type: 'stroke_new',
-    id: current_stroke.id,
-    parent_id: current_stroke.parent_id
+    stroke: current_stroke
   };
   ws.send(JSON.stringify(msg));
 }
 
-function endStroke(canvas_ctx) {
-  if (!drawing) {
+function endStroke() {
+  if (!current_stroke) {
     return;
   }
     
@@ -109,47 +112,60 @@ function endStroke(canvas_ctx) {
 
   commits[current_stroke.id] = current_stroke;
 
-  drawing = false;
   current_stroke = null;
+}
+
+function strokeProgress(pt) {
+  if (!current_stroke) {
+    current_stroke = null;
+    return;
+  }
+  var prev = current_stroke.data.points[current_stroke.data.points.length - 1];
+  current_stroke.data.points.push(pt);
+
+  Canvas.renderLine(prev, pt, current_stroke.data.width);
+  var msg = {
+    type: 'stroke_progress',
+    prev: prev,
+    pos: pt,
+    id: current_stroke.id
+  };
+  ws.send(JSON.stringify(msg));
 }
 
 function getBoundingRect(canvas) {
   return canvas.getBoundingClientRect();
 }
 
-function renderPoints(points) {
+function renderPoints(points, width) {
   if (points.length < 2) {
     return;
   }
   var prev = points[0];
   for (var i = 1; i < points.length; i++) {
     var cur = points[i];
-    renderLine(prev, cur);
+    Canvas.renderLine(prev, cur, width);
     prev = cur;
   }
-}
-
-function renderLine(start, end) {
-  ctx.lineWidth = 3;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(start.x, start.y);
-  ctx.lineTo(end.x, end.y);
-  ctx.stroke();
-}
-
-function getMousePos(canvas, evt) {
-  var rect = getBoundingRect(canvas);
-  return {
-    x: evt.clientX - rect.left,
-    y: evt.clientY - rect.top
-  };
 }
 
 function attachControls() {
   var reset_button = document.getElementById('reset_button');
   reset_button.onmousedown = function (evt) {
     reset();
+  }
+
+  var small_width_button = document.getElementById('small_width_button');
+  var medium_width_button = document.getElementById('medium_width_button');
+  var large_width_button = document.getElementById('large_width_button');
+  small_width_button.onmousedown = function (evt) {
+    line_width = 3;
+  }
+  medium_width_button.onmousedown = function (evt) {
+    line_width = 7;
+  }
+  large_width_button.onmousedown = function (evt) {
+    line_width = 11;
   }
 
   // hotkeys
@@ -163,41 +179,12 @@ function attachControls() {
   }
 }
 
-canvas.addEventListener('resize', function (evt) {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-});
-
-canvas.addEventListener('mousemove', function (evt) {
-  if (!drawing || !current_stroke) {
-    drawing = false;
-    current_stroke = null;
-    return;
-  }
-  var prev = current_stroke.data.points[current_stroke.data.points.length - 1];
-  var pos = getMousePos(canvas, evt);
-  current_stroke.data.points.push(pos);
-
-  renderLine(prev, pos);
-  var msg = {
-    type: 'stroke_progress',
-    prev: prev,
-    pos: pos
-  };
-  ws.send(JSON.stringify(msg));
-});
-
-canvas.addEventListener('mousedown', function (evt) {
-  var pt = getMousePos(canvas, evt);
-  startStroke(pt)
-});
-
-canvas.addEventListener('mouseup', function (evt) {
-  endStroke(ctx);
-});
-
-canvas.addEventListener('mouseout', function (evt) {
-  endStroke(ctx);
-});
-
 attachControls();
+
+var callbacks = {
+  mousemove: strokeProgress,
+  mousedown: startStroke,
+  mouseup: endStroke,
+  mouseout: endStroke
+};
+Canvas.init("whiteboard", callbacks);
