@@ -5,11 +5,12 @@ var app = express();
 
 var last_client_id = 10;
 var repositories = {};
+var client
 
-function broadcastMessage(wss, raw_msg, exclude_client) {
+function broadcastMessage(wss, raw_msg, repo_id, exclude_client) {
   for (var i = 0; i < wss.clients.length; i++) {
     var client = wss.clients[i];
-    if (client !== exclude_client) {
+    if (client.repo_id === repo_id && client !== exclude_client) {
       client.send(raw_msg);
     }
   }
@@ -21,26 +22,24 @@ wss.on('connection', function (ws) {
   ws.on('message', function (raw_msg) {
     var msg = JSON.parse(raw_msg);
     if (msg.type == 'connect') {
-      console.log(repositories);
-
-      var new_id = last_client_id++;
-      var repo_id = msg.repo_id;
-      if (repo_id in repositories) {
-        repo = repositories[repo_id];
+      this.client_id = last_client_id++;
+      this.repo_id = msg.repo_id;
+      if (this.repo_id in repositories) {
+        repo = repositories[this.repo_id];
       } else {
-        repo_id = Math.random().toString(16).substring(2);
+        this.repo_id = Math.random().toString(16).substring(2);
         repo = new Repository();
-        repositories[repo_id] = repo;
+        repositories[this.repo_id] = repo;
       }
       ws.send(JSON.stringify({
         type: 'history',
-        repo_id: repo_id,
+        repo_id: this.repo_id,
         commits: repo.getCommits(),
-        client_id: new_id,
+        client_id: this.client_id,
         head: repo.getHead()
       }));
     } else if (msg.type == 'stroke_progress') {
-      broadcastMessage(wss, raw_msg, ws);
+      broadcastMessage(wss, raw_msg, this.repo_id, ws);
     } else if (msg.type == 'stroke_new') {
       var stroke = msg.stroke;
       if (!stroke) {
@@ -52,7 +51,7 @@ wss.on('connection', function (ws) {
         type: 'stroke_new',
         stroke: stroke
       };
-      broadcastMessage(wss, JSON.stringify(updated_msg));
+      broadcastMessage(wss, JSON.stringify(updated_msg), this.repo_id);
     } else if (msg.type == 'stroke_commit') {
       var stroke = msg.stroke;
       if (!stroke) {
@@ -61,10 +60,10 @@ wss.on('connection', function (ws) {
       // Update commit
       repo.updateCommitData(stroke.id, stroke.data);
 
-      broadcastMessage(wss, raw_msg, ws);
+      broadcastMessage(wss, raw_msg, this.repo_id, ws);
     } else if (msg.type == 'reset') {
       repo.reset();
-      broadcastMessage(wss, raw_msg, ws);
+      broadcastMessage(wss, raw_msg, this.repo_id, ws);
     } else {
       console.log('unknown message', raw_msg);
     }
