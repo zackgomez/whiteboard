@@ -56,7 +56,7 @@ body {
 #history_gallery div {
   height: 40px;
   width: 60px;
-  background-color: #eee;
+  background-color: gray;
   display: inline-block;
   margin-right: 20px;
 }

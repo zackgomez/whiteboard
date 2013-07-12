@@ -1,5 +1,5 @@
 var gallery = document.getElementById("history_gallery");
-var current_commit = null;
+var current_commit_id = null;
 
 function addCommitToGallery(commit) {
   var new_div = document.createElement("div");
@@ -18,21 +18,25 @@ function clickListener() {
 }
 
 function clearGallery() {
+  current_commit_id = null;
   gallery.innerHTML = null;
 }
 
-function setCurrentCommit(commit) {
-  if (current_commit) {
-    document.getElementById(current_commit).style.background = "#eee";
+function setCurrentCommit(commit_id) {
+  if (!commit_id) {
+    return;
   }
-  if (commit) {
-    document.getElementById(commit).style.background = 'yellow';
+
+  if (current_commit_id) {
+    document.getElementById(current_commit_id).style.background = "gray";
   }
-  current_commit = commit;
+  document.getElementById(commit_id).style.background = 'yellow';
+  current_commit_id = commit_id;
 }
 
-function updateCurrentCommit(commit) {
-  if (current_commit == commits[head].parent_id) {
-    setCurrentCommit(commit);
+function updateCurrentCommitId(commit_id) {
+  var head = repo.getHeadId();
+  if (current_commit_id == head) {
+    setCurrentCommit(commit_id);
   }
 }

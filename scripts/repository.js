@@ -1,6 +1,6 @@
-function Repository() {
-  this.commits = {};
-  this.head_commit_id = null;
+function Repository(commits, head_commit_id) {
+  this._commits = commits;
+  this._head_commit_id = head_commit_id;
 
   this.traverseCommits = function (commit_id, callback) {
     if (commit_id === null) {
@@ -11,49 +11,67 @@ function Repository() {
       throw new Error('commit id ' + commit_id + ' not found');
     }
 
-    traverseCommits(commit.parent_id, callback);
+    this.traverseCommits(commit.parent_id, callback);
     callback(commit);
   }
 
   this.getCommits = function () {
-    return this.commits;
+    return this._commits;
   }
   
   this.getCommit = function (commit_id) {
-    return this.commits[commit_id];
+    return this._commits[commit_id];
+  }
+
+  this.getHeadId = function () {
+    return this._head_commit_id;
   }
 
   this.getHead = function () {
-    return this.head_commit_id;
+    if (!this._head_commit_id) {
+      return null;
+    }
+    return this._commits[this._head_commit_id];
   }
 
   this.reset = function () {
-    this.commits = {};
-    this.head_commit_id = null;
+    this._commits = {};
+    this._head_commit_id = null;
   }
 
   this.setHead = function (commit_id) {
-    if (!(commit_id in this.commits)) {
+    if (!(commit_id in this._commits)) {
       return;
     }
-    this.head_commit_id = commit_id;
+    this._head_commit_id = commit_id;
+  }
+
+  this.containsCommit = function(commit_id) {
+    return commit_id in this._commits;
   }
 
   this.appendCommit = function (new_commit) {
-    var old_head = this.head_commit_id;
+    var old_head = this._head_commit_id;
     new_commit.parent_id = old_head;
-    this.head_commit_id = new_commit.id;
+    this._head_commit_id = new_commit.id;
 
-    this.commits[this.head_commit_id] = new_commit;
+    this._commits[this._head_commit_id] = new_commit;
     return new_commit;
   }
 
+  this.addCommit = function (commit) {
+    this._commits[commit.id] = commit;
+  }
+
   this.updateCommitData = function (commit_id, data) {
-    if (!(commit_id in this.commits)) {
+    if (!(commit_id in this._commits)) {
       return;
     }
-    this.commits[commit_id].data = data;
+
+    this._commits[commit_id].data = data;
   }
 }
 
-module.exports = Repository;
+if (typeof window === "undefined") {
+  module.exports = Repository;
+}

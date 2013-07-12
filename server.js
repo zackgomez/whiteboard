@@ -28,7 +28,7 @@ wss.on('connection', function (ws) {
         repo = repositories[this.repo_id];
       } else {
         this.repo_id = Math.random().toString(16).substring(2);
-        repo = new Repository();
+        repo = new Repository({}, null);
         repositories[this.repo_id] = repo;
       }
       ws.send(JSON.stringify({
@@ -36,7 +36,7 @@ wss.on('connection', function (ws) {
         repo_id: this.repo_id,
         commits: repo.getCommits(),
         client_id: this.client_id,
-        head: repo.getHead()
+        head: repo.getHeadId()
       }));
     } else if (msg.type == 'stroke_progress') {
       broadcastMessage(wss, raw_msg, this.repo_id, ws);

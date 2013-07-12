@@ -2,48 +2,49 @@ function createSocket() {
   var handleMessage = function (raw_msg) {
     var msg = JSON.parse(raw_msg);
     if (msg.type == 'stroke_progress') {
-      var stroke = commits[msg.id];
+      var stroke = repo.getCommit(msg.id);
       if (!stroke) {
         return;
       }
       Canvas.renderLine(msg.prev, msg.pos, stroke.data.width, stroke.data.color);
     } else if (msg.type == 'history') {
       client_id = msg.client_id;
-      repo_id = msg.repo_id;
-      setHistory(msg.commits);
-      head = msg.head;
-      renderCommitAndAddToGallery(head);
+      setRepoHistory(msg.commits, msg.head);
+      renderCommit(msg.head, true);
+
+      //update gallery
       gallery.scrollLeft = gallery.scrollWidth;
-      setCurrentCommit(head);
-      window.location.hash = repo_id;
+      setCurrentCommit(msg.head);
+      window.location.hash = msg.repo_id;
     } else if (msg.type == 'stroke_commit') {
       var stroke = msg.stroke;
-      if (!stroke || !commits[stroke.parent_id]) {
+      if (!stroke || !repo.getCommit(stroke.parent_id)) {
         return;
       }
-      commits[stroke.id] = stroke;
+      repo.updateCommitData(stroke.id, stroke);
+
+      // update gallery
       addCommitToGallery(stroke);
       gallery.scrollLeft = gallery.scrollWidth;
-      updateCurrentCommit(stroke);
+      updateCurrentCommitId(stroke.id);
     } else if (msg.type == 'stroke_new') {
       var stroke = msg.stroke;
       if (current_stroke && stroke.id === current_stroke.id) {
         current_stroke.parent_id = stroke.parent_id;
       }
-      if (stroke.id in commits) {
-        commits[stroke.id].parent_id = stroke.parent_id;
+      if (repo.containsCommit(stroke.id)) {
+        repo.getCommit(stroke.id).parent_id = stroke.parent_id;
       } else {
-        commits[stroke.id] = stroke;
+        repo.addCommit(stroke.id, stroke);
       }
     } else if (msg.type == 'reset') {
-      setHistory({});
+      reset();
     } else {
       console.log('unknown message', raw_msg);
     }
   }
 
   var repo_id = window.location.hash ? window.location.hash.substring(1) : null;
-  console.log(repo_id);
   var wsurl = 'ws://' + window.location.hostname + ':8081';
   var ws = new WebSocket(wsurl);
   ws.onopen = function (evt) {
@@ -54,70 +55,49 @@ function createSocket() {
 }
 
 var current_stroke = null;
-var ws = createSocket();
-var commits = {};
-var head = null;
-
-var repo_id = null;
+var repo = new Repository({}, null);
 var client_id = null;
+var ws = createSocket();
+
 var local_stroke_count = 0;
 var line_width = 3;
 var line_color = '#000000';
 
 function reset() {
-  setHistory({});
+  setRepoHistory({}, null);
   ws.send(JSON.stringify({
     type: 'reset',
   }));
 }
 
-function setHistory(new_history) {
+function setRepoHistory(new_history, new_head) {
   Canvas.clear();
   clearGallery();
-  commits = new_history;
+  repo = new Repository(new_history, new_head);
 }
 
-function renderCommit(commit_id) {
-  traverseCommits(commit_id, function(commit) {
+function renderCommit(commit_id, add_to_gallery) {
+  repo.traverseCommits(commit_id, function(commit) {
     if (commit.data.points) {
       renderPoints(commit.data.points, commit.data.width, commit.data.color);
+      if (add_to_gallery) {
+        addCommitToGallery(commit);
+      }
     }
   });
-}
-
-function renderCommitAndAddToGallery(commit_id) {
-  traverseCommits(commit_id, function(commit) {
-    if (commit.data.points) {
-      renderPoints(commit.data.points, commit.data.width, commit.data.color);
-      addCommitToGallery(commit);
-    }
-  });
-}
-
-function traverseCommits(commit_id, cb) {
-  if (commit_id === null) {
-    return;
-  }
-  var commit = commits[commit_id];
-  if (!commit) {
-    throw new Error('commit id ' + commit_id + ' not found');
-  }
-
-  traverseCommits(commit.parent_id, cb);
-  cb(commit);
 }
 
 function startStroke(pt) {
   current_stroke = {
     id: client_id + '.' + local_stroke_count++,
-    parent_id: head,
+    parent_id: repo.getHeadId(),
     data: {
       width: line_width,
       color: line_color,
       points: [pt]
     }
   }
-  head = current_stroke.id;
+  repo.setHead(current_stroke.id);
   
   var msg = {
     type: 'stroke_new',
@@ -138,9 +118,9 @@ function endStroke() {
   ws.send(JSON.stringify(msg));
   addCommitToGallery(current_stroke);
   gallery.scrollLeft = gallery.scrollWidth;
-  updateCurrentCommit(current_stroke.id);
+  updateCurrentCommitId(current_stroke.id);
 
-  commits[current_stroke.id] = current_stroke;
+  repo.appendCommit(current_stroke);
 
   current_stroke = null;
 }
