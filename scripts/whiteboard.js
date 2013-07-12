@@ -13,6 +13,8 @@ function createSocket() {
       setHistory(msg.commits);
       head = msg.head;
       renderCommitAndAddToGallery(head);
+      gallery.scrollLeft = gallery.scrollWidth;
+      setCurrentCommit(head);
       window.location.hash = repo_id;
     } else if (msg.type == 'stroke_commit') {
       var stroke = msg.stroke;
@@ -20,8 +22,9 @@ function createSocket() {
         return;
       }
       commits[stroke.id] = stroke;
-      gallery.scrollLeft = gallery.scrollWidth;
       addCommitToGallery(stroke);
+      gallery.scrollLeft = gallery.scrollWidth;
+      updateCurrentCommit(stroke);
     } else if (msg.type == 'stroke_new') {
       var stroke = msg.stroke;
       if (current_stroke && stroke.id === current_stroke.id) {
@@ -32,7 +35,6 @@ function createSocket() {
       } else {
         commits[stroke.id] = stroke;
       }
-
     } else if (msg.type == 'reset') {
       setHistory({});
     } else {
@@ -134,9 +136,9 @@ function endStroke() {
     stroke: current_stroke
   };
   ws.send(JSON.stringify(msg));
-
   addCommitToGallery(current_stroke);
   gallery.scrollLeft = gallery.scrollWidth;
+  updateCurrentCommit(current_stroke.id);
 
   commits[current_stroke.id] = current_stroke;
 
