@@ -35,7 +35,7 @@ function createSocket() {
       if (repo.containsCommit(stroke.id)) {
         repo.getCommit(stroke.id).parent_id = stroke.parent_id;
       } else {
-        repo.addCommit(stroke.id, stroke);
+        repo.addCommit(stroke);
       }
     } else if (msg.type == 'reset') {
       reset();

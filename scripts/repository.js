@@ -1,6 +1,23 @@
 function Repository(commits, head_commit_id) {
   this._commits = commits;
   this._head_commit_id = head_commit_id;
+  this._temporary_commits = {};
+
+  this.findBranches = function(commit) {
+    var num_children = {}; 
+    var branches = []
+    
+    var parent_id = commit.parent_id;
+    for (var commit in commits) {
+      if (num_children[parent_id]) {
+        branches.push(parent_id);
+      } else {
+        num_children[parent_id] = 1;
+      }
+    }
+    
+    return branches;
+  }
 
   this.traverseCommits = function (commit_id, callback) {
     if (commit_id === null) {
@@ -59,6 +76,11 @@ function Repository(commits, head_commit_id) {
     return new_commit;
   }
 
+  this.branch = function (new_commit) {
+    this._commits[new_commit.id] = new_commit;
+    this._branch_commit_ids.push(new_commit);
+  }
+
   this.addCommit = function (commit) {
     this._commits[commit.id] = commit;
   }
@@ -70,6 +92,8 @@ function Repository(commits, head_commit_id) {
 
     this._commits[commit_id].data = data;
   }
+
+  this._branch_commit_ids = this.findBranches(this._commits); 
 }
 
 if (typeof window === "undefined") {
