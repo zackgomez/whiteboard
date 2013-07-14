@@ -7,22 +7,17 @@ function createSocket() {
       client_id = msg.client_id;
 
       setRepoHistory(msg.commits, msg.head);
-      renderCommit(msg.head, true);
-      setCurrentCommit(msg.head);
+      gallery.selectCommit(msg.head);
 
-      //update gallery
-      gallery.scrollLeft = gallery.scrollWidth;
       window.location.hash = msg.repo_id;
     } else if (msg.type == 'stroke_commit') {
       var stroke = msg.stroke;
-      if (!stroke || !repo.getCommit(stroke.parent_id)) {
+      if (!stroke) {
         return;
       }
       repo.appendCommit(stroke);
 
-      // update gallery
-      addCommitToGallery(stroke);
-      gallery.scrollLeft = gallery.scrollWidth;
+      gallery.addCommit(stroke);
     } else if (msg.type == 'reset') {
       reset();
     } else {
@@ -48,6 +43,8 @@ var ws = createSocket();
 var local_stroke_count = 0;
 var line_width = 3;
 var line_color = '#000000';
+var gallery = new Gallery();
+console.log(gallery);
 
 function reset() {
   setRepoHistory({}, null);
@@ -58,8 +55,9 @@ function reset() {
 
 function setRepoHistory(new_history, new_head) {
   Canvas.clear();
-  clearGallery();
+  gallery.clearGallery();
   repo = new Repository(new_history, new_head);
+  renderCommit(new_head, true);
 }
 
 function renderCommit(commit_id, add_to_gallery) {
@@ -67,7 +65,7 @@ function renderCommit(commit_id, add_to_gallery) {
     if (commit.data.points) {
       renderPoints(commit.data.points, commit.data.width, commit.data.color);
       if (add_to_gallery) {
-        addCommitToGallery(commit);
+        gallery.addCommit(commit);
       }
     }
   });
@@ -76,14 +74,12 @@ function renderCommit(commit_id, add_to_gallery) {
 function startStroke(pt) {
   current_stroke = {
     id: client_id + '.' + local_stroke_count++,
-    parent_id: repo.getHeadId(),
     data: {
       width: line_width,
       color: line_color,
       points: [pt]
     }
   }
-  repo.setHead(current_stroke.id);
 }
 
 function endStroke() {
@@ -98,11 +94,7 @@ function endStroke() {
 
   ws.send(JSON.stringify(msg));
   repo.appendCommit(current_stroke);
-
-  // update gallery
-  addCommitToGallery(current_stroke);
-  gallery.scrollLeft = gallery.scrollWidth;
-  //updateCurrentCommitId(current_stroke.id);
+  gallery.addCommit(current_stroke);
 
   current_stroke = null;
 }

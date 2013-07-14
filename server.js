@@ -3,7 +3,7 @@ var WebSocket = require('ws');
 var Repository = require('./scripts/repository');
 var app = express();
 
-var last_client_id = 10;
+var last_client_id = 0;
 var repositories = {};
 var client
 
@@ -23,8 +23,8 @@ wss.on('connection', function (ws) {
     var msg = JSON.parse(raw_msg);
     if (msg.type == 'connect') {
       this.client_id = last_client_id++;
-      this.repo_id = msg.repo_id;
-      if (this.repo_id in repositories) {
+      if (msg.repo_id in repositories) {
+        this.repo_id = msg.repo_id
         repo = repositories[this.repo_id];
       } else {
         this.repo_id = Math.random().toString(16).substring(2);
