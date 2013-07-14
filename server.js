@@ -40,27 +40,13 @@ wss.on('connection', function (ws) {
       }));
     } else if (msg.type == 'stroke_progress') {
       broadcastMessage(wss, raw_msg, this.repo_id, ws);
-    } else if (msg.type == 'stroke_new') {
-      var stroke = msg.stroke;
-      if (!stroke) {
-        return;
-      }
-      stroke = repo.appendCommit(stroke);
-
-      var updated_msg = {
-        type: 'stroke_new',
-        stroke: stroke
-      };
-      broadcastMessage(wss, JSON.stringify(updated_msg), this.repo_id);
     } else if (msg.type == 'stroke_commit') {
-      var stroke = msg.stroke;
-      if (!stroke) {
+      if (!msg.stroke) {
         return;
       }
-      // Update commit
-      repo.updateCommitData(stroke.id, stroke.data);
+      repo.appendCommit(msg.stroke);
 
-      broadcastMessage(wss, raw_msg, this.repo_id, ws);
+      broadcastMessage(wss, JSON.stringify(msg), this.repo_id, ws);
     } else if (msg.type == 'reset') {
       repo.reset();
       broadcastMessage(wss, raw_msg, this.repo_id, ws);

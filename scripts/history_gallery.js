@@ -8,6 +8,10 @@ function addCommitToGallery(commit) {
   new_div.addEventListener("click", clickListener);
 
   gallery.appendChild(new_div);
+
+  if (current_commit_id == repo.getHead().parent_id) {
+    setCurrentCommit(commit.id);
+  }
 }
 
 function clickListener() {
@@ -32,11 +36,4 @@ function setCurrentCommit(commit_id) {
   }
   document.getElementById(commit_id).style.background = 'yellow';
   current_commit_id = commit_id;
-}
-
-function updateCurrentCommitId(commit_id) {
-  var head = repo.getHeadId();
-  if (current_commit_id == head) {
-    setCurrentCommit(commit_id);
-  }
 }

@@ -67,13 +67,12 @@ function Repository(commits, head_commit_id) {
     return commit_id in this._commits;
   }
 
+  // mutates the commit!
   this.appendCommit = function (new_commit) {
-    var old_head = this._head_commit_id;
-    new_commit.parent_id = old_head;
+    new_commit.parent_id = this._head_commit_id;
     this._head_commit_id = new_commit.id;
 
     this._commits[this._head_commit_id] = new_commit;
-    return new_commit;
   }
 
   this.branch = function (new_commit) {

@@ -2,41 +2,27 @@ function createSocket() {
   var handleMessage = function (raw_msg) {
     var msg = JSON.parse(raw_msg);
     if (msg.type == 'stroke_progress') {
-      var stroke = repo.getCommit(msg.id);
-      if (!stroke) {
-        return;
-      }
-      Canvas.renderLine(msg.prev, msg.pos, stroke.data.width, stroke.data.color);
+      Canvas.renderLine(msg.prev, msg.pos, msg.width, msg.color);
     } else if (msg.type == 'history') {
       client_id = msg.client_id;
+
       setRepoHistory(msg.commits, msg.head);
       renderCommit(msg.head, true);
+      setCurrentCommit(msg.head);
 
       //update gallery
       gallery.scrollLeft = gallery.scrollWidth;
-      setCurrentCommit(msg.head);
       window.location.hash = msg.repo_id;
     } else if (msg.type == 'stroke_commit') {
       var stroke = msg.stroke;
       if (!stroke || !repo.getCommit(stroke.parent_id)) {
         return;
       }
-      repo.updateCommitData(stroke.id, stroke);
+      repo.appendCommit(stroke);
 
       // update gallery
       addCommitToGallery(stroke);
       gallery.scrollLeft = gallery.scrollWidth;
-      updateCurrentCommitId(stroke.id);
-    } else if (msg.type == 'stroke_new') {
-      var stroke = msg.stroke;
-      if (current_stroke && stroke.id === current_stroke.id) {
-        current_stroke.parent_id = stroke.parent_id;
-      }
-      if (repo.containsCommit(stroke.id)) {
-        repo.getCommit(stroke.id).parent_id = stroke.parent_id;
-      } else {
-        repo.addCommit(stroke);
-      }
     } else if (msg.type == 'reset') {
       reset();
     } else {
@@ -98,12 +84,6 @@ function startStroke(pt) {
     }
   }
   repo.setHead(current_stroke.id);
-  
-  var msg = {
-    type: 'stroke_new',
-    stroke: current_stroke
-  };
-  ws.send(JSON.stringify(msg));
 }
 
 function endStroke() {
@@ -115,12 +95,14 @@ function endStroke() {
     type: 'stroke_commit',
     stroke: current_stroke
   };
+
   ws.send(JSON.stringify(msg));
+  repo.appendCommit(current_stroke);
+
+  // update gallery
   addCommitToGallery(current_stroke);
   gallery.scrollLeft = gallery.scrollWidth;
-  updateCurrentCommitId(current_stroke.id);
-
-  repo.appendCommit(current_stroke);
+  //updateCurrentCommitId(current_stroke.id);
 
   current_stroke = null;
 }
@@ -138,7 +120,8 @@ function strokeProgress(pt) {
     type: 'stroke_progress',
     prev: prev,
     pos: pt,
-    id: current_stroke.id
+    width: current_stroke.data.width,
+    color: current_stroke.data.color
   };
   ws.send(JSON.stringify(msg));
 }
