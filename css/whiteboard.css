@@ -65,3 +65,8 @@ body {
   display: inline-block;
   margin-right: 20px;
 }
+
+.colorButton {
+	margin-top: 4px;
+	height: 20px;
+}
