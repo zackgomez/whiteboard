@@ -15,13 +15,6 @@ function Gallery() {
     }
   }
 
-  function clickListener() {
-    var id = this.getAttribute("id");
-    Canvas.clear();
-    renderCommit(id);
-    this.selectCommit(id);
-  }
-
   this.clearGallery = function() {
     this._selectedCommitId = null;
     this._galleryElem.innerHTML = null;
@@ -41,3 +34,11 @@ function Gallery() {
     this._selectedCommitId = commit_id;
   }
 }
+
+function clickListener() {
+  var id = this.getAttribute("id");
+  Canvas.clear();
+  renderCommit(id);
+  gallery.selectCommit(id);
+}
+

@@ -1,22 +1,36 @@
-function Repository(commits, head_commit_id) {
+function Repository(commits, head) {
   this._commits = commits;
-  this._head_commit_id = head_commit_id;
-  this._temporary_commits = {};
+  this._head_commit_id = head;
+  this._leaves = null;
 
-  this.findBranches = function(commit) {
-    var num_children = {}; 
-    var branches = []
-    
-    var parent_id = commit.parent_id;
-    for (var commit in commits) {
+  this.findNumChildren = function() {
+    var num_children = {};
+    for (var commit in this._commits) {
+      var parent_id = this._commits[commit].parent_id;
       if (num_children[parent_id]) {
-        branches.push(parent_id);
-      } else {
+        num_children[parent_id]++;
+      } else if (parent_id) {
         num_children[parent_id] = 1;
       }
     }
-    
-    return branches;
+
+    return num_children;
+  }
+
+  this.findLeaves = function() {
+    var num_children = this.findNumChildren();
+    var leaves = [];
+    for (var commit in this._commits) {
+      if (!num_children.hasOwnProperty(commit)) {
+        leaves.push(commit);
+      }
+    }
+    return leaves;
+  }
+
+  this.addBranch = function(commit) {
+    this.addCommit(commit);
+    this._leaves.push(commit.id);
   }
 
   this.traverseCommits = function (commit_id, callback) {
@@ -92,7 +106,7 @@ function Repository(commits, head_commit_id) {
     this._commits[commit_id].data = data;
   }
 
-  this._branch_commit_ids = this.findBranches(this._commits); 
+  this._leaves = this.findLeaves();
 }
 
 if (typeof window === "undefined") {
