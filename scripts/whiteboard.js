@@ -44,7 +44,6 @@ var local_stroke_count = 0;
 var line_width = 3;
 var line_color = '#000000';
 var gallery = new Gallery();
-console.log(gallery);
 
 function reset() {
   setRepoHistory({}, null);

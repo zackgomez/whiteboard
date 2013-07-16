@@ -48,7 +48,7 @@ body {
   left: 10px;
 }
 
-#history_gallery {
+#gallery {
   position: absolute;
   top: 650px;
   left: 150px;
@@ -58,7 +58,7 @@ body {
   width: 800px;
   white-space: nowrap;
 }
-#history_gallery div {
+#gallery div {
   height: 40px;
   width: 60px;
   background-color: gray;

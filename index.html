@@ -1,10 +1,9 @@
-<html>
 <head>
   <title>Collaborative Whiteboard</title>
   <link rel="stylesheet" href="css/whiteboard.css" type="text/css" />
   <script src="scripts/canvas.js"></script>
-  </head>
-  <body>
+</head>
+<div id="wrap">
   <div id="controls">
     <ul>
 			<li><h2>Canvas</h2></li>
@@ -28,10 +27,10 @@
   <div id="whiteboard_wrapper">
     <canvas id="whiteboard" width="800px" height="600px" tabindex="1" />
   </div>
-  <div id="history_gallery">
+  <div id="gallery">
   </div>
 	<script src="scripts/repository.js"></script>
-  <script src="scripts/history_gallery.js"></script>
+  <script src="scripts/gallery.js"></script>
   <script src="scripts/whiteboard.js"></script>
 	<script src="scripts/options.js"></script>
 	
@@ -39,5 +38,4 @@
   <div id="footer">
     Hosted on Github: <a href="https://github.com/zackgomez/whiteboard">https://github.com/zackgomez/whiteboard</a>
   </div>
-</body>
-</html>
+</div>

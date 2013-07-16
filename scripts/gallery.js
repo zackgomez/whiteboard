@@ -1,5 +1,5 @@
 function Gallery() {
-  this._galleryElem = document.getElementById("history_gallery");
+  this._galleryElem = document.getElementById("gallery");
   this._selectedCommitId = null;
 
   this.addCommit  = function(commit) {
